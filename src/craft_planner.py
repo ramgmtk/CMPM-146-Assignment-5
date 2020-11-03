@@ -2,6 +2,8 @@ import json
 from collections import namedtuple, defaultdict, OrderedDict
 from timeit import default_timer as time
 
+from heapq import heappop, heappush
+
 Recipe = namedtuple('Recipe', ['name', 'check', 'effect', 'cost'])
 
 
@@ -41,6 +43,14 @@ def make_checker(rule):
     def check(state):
         # This code is called by graph(state) and runs millions of times.
         # Tip: Do something with rule['Consumes'] and rule['Requires'].
+        if 'Requires' in rule.keys():
+            for required_key_item in rule['Requires'].keys():
+                if state.get(required_key_item) == 0:
+                    return False
+        if 'Consumes' in rule.keys():
+            for required_crafting_item, required_amount in rule['Consumes'].items():
+                if state.get(required_crafting_item) < required_amount:
+                    return False
         return True
 
     return check
@@ -54,7 +64,13 @@ def make_effector(rule):
     def effect(state):
         # This code is called by graph(state) and runs millions of times
         # Tip: Do something with rule['Produces'] and rule['Consumes'].
-        next_state = None
+        next_state = state.copy()
+        if 'Consumes' in rule.keys():
+            for consumed_item, consumed_amount in rule['Consumes'].items():
+                next_state[consumed_item] = state[consumed_item] - consumed_amount
+        if 'Produces' in rule.keys():
+            for produced_item, produced_amount in rule['Produces'].items():
+                next_state[produced_item] = next_state[produced_item] + produced_amount
         return next_state
 
     return effect
@@ -66,7 +82,10 @@ def make_goal_checker(goal):
 
     def is_goal(state):
         # This code is used in the search process and may be called millions of times.
-        return False
+        for goal_item, amount in goal.items():
+            if state.get(goal_item) < amount:
+                return False
+        return True
 
     return is_goal
 
@@ -87,14 +106,37 @@ def heuristic(state):
 def search(graph, state, is_goal, limit, heuristic):
 
     start_time = time()
+    queue = [(0, state)]
+    predecessor = { state : (None, None) } 
+    cost_to_travel = { state : 0 }    
 
     # Implement your search here! Use your heuristic here!
     # When you find a path to the goal return a list of tuples [(state, action)]
     # representing the path. Each element (tuple) of the list represents a state
     # in the path and the action that took you to this state
-    while time() - start_time < limit:
-        pass
-
+    try :
+        while time() - start_time < limit:
+            _, current_state = heappop(queue)
+            current_cost = cost_to_travel[current_state]
+            
+            if is_goal(current_state):
+                resulting_path = []
+                state, action = predecessor[current_state]
+                while state:
+                    resulting_path.append((state, action))
+                    state, action = predecessor[state]
+                return resulting_path[::-1]
+            
+            for recipe_name, next_state, state_cost in graph(current_state):
+                craft_cost = state_cost + current_cost
+                if next_state not in cost_to_travel or craft_cost < cost_to_travel[next_state]:
+                    cost_to_travel[next_state] = craft_cost
+                    priority = craft_cost + heuristic(next_state)
+                    heappush(queue, (priority, next_state))
+                    predecessor[next_state] = (current_state, recipe_name)                          
+    except IndexError:
+        print("Queue empty: path failed")
+        
     # Failed to find a path
     print(time() - start_time, 'seconds.')
     print("Failed to find a path from", state, 'within time limit.')
@@ -130,6 +172,7 @@ if __name__ == '__main__':
     # Initialize first state from initial inventory
     state = State({key: 0 for key in Crafting['Items']})
     state.update(Crafting['Initial'])
+    print(state)
 
     # Search for a solution
     resulting_plan = search(graph, state, is_goal, 5, heuristic)
