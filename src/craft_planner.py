@@ -101,7 +101,16 @@ def graph(state):
 
 def heuristic(state):
     # Implement your heuristic here!
-    return 0
+    total_weight = 0
+    redundant_list = ["bench", "cart", "furnace", "iron_axe", "iron_pickaxe", "stone_axe", "stone_pickaxe", "wooden_axe", "wooden_pickaxe"] #items where there is no need to have more than 1
+    max_bench_space = ["cobble", "ingot", "plank"] #essentially take no more of these than what we can craft at a given moment.
+    for redundancy in redundant_list:
+        if state[redundancy] > 1 :
+            total_weight += float('inf')
+    for resource in max_bench_space:
+        if state[resource] > 9:
+            total_weight += 50
+    return total_weight
 
 def search(graph, state, is_goal, limit, heuristic):
 
@@ -120,6 +129,7 @@ def search(graph, state, is_goal, limit, heuristic):
             current_cost = cost_to_travel[current_state]
             
             if is_goal(current_state):
+                print({time() - start_time}," seconds")
                 resulting_path = []
                 state, action = predecessor[current_state]
                 while state:
@@ -172,13 +182,13 @@ if __name__ == '__main__':
     # Initialize first state from initial inventory
     state = State({key: 0 for key in Crafting['Items']})
     state.update(Crafting['Initial'])
-    print(state)
 
     # Search for a solution
-    resulting_plan = search(graph, state, is_goal, 5, heuristic)
+    resulting_plan = search(graph, state, is_goal, 30, heuristic)
 
     if resulting_plan:
         # Print resulting plan
         for state, action in resulting_plan:
             print('\t',state)
             print(action)
+        print(len(resulting_plan))
