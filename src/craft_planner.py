@@ -133,10 +133,10 @@ def heuristic(state, action):
     #above might not work cause what if the goal is 64 coal?
     
     #essentially take no more of these than what we can craft at a given moment.             
-    """max_bench_space = ["cobble", "ingot", "plank"]   
+    max_bench_space = ["cobble", "ingot", "plank"]   
     for resource in max_bench_space:
         if state[resource] > 8:
-            total_weight += 50"""
+            total_weight += 50
     #not sure how helpful this one is
     
     return total_weight
@@ -213,7 +213,7 @@ if __name__ == '__main__':
     state.update(Crafting['Initial'])
 
     # Search for a solution
-    resulting_plan = search(graph, state, is_goal, 30, heuristic)
+    resulting_plan = search(graph, state, is_goal, 100, heuristic)
 
     if resulting_plan:
         # Print resulting plan
