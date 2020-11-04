@@ -99,17 +99,46 @@ def graph(state):
             yield (r.name, r.effect(state), r.cost)
 
 
-def heuristic(state):
+def heuristic(state, action):
     # Implement your heuristic here!
     total_weight = 0
-    redundant_list = ["bench", "cart", "furnace", "iron_axe", "iron_pickaxe", "stone_axe", "stone_pickaxe", "wooden_axe", "wooden_pickaxe"] #items where there is no need to have more than 1
-    max_bench_space = ["cobble", "ingot", "plank"] #essentially take no more of these than what we can craft at a given moment.
+    
+    #items where there is no need to have more than 1
+    redundant_list = ["bench", "cart", "furnace", "iron_axe", "iron_pickaxe", "stone_axe", "stone_pickaxe", "wooden_axe", "wooden_pickaxe"]
     for redundancy in redundant_list:
         if state[redundancy] > 1 :
             total_weight += float('inf')
+            
+    #if we have a tool of a higher tier do not use the lower tier one.
+    if 'stone_pickaxe' in action:
+        if state['iron_pickaxe'] >= 1:
+            total_weight += float('inf')
+    elif 'wooden_pickaxe' in action:
+        if state['iron_pickaxe'] >= 1 or state['stone_pickaxe'] >= 1:
+            total_weight += float('inf')
+    if 'stone_axe' in action:
+        if state['iron_axe'] >= 1:
+            total_weight += float('inf')
+    elif 'wooden_axe' in action:
+        if state['iron_axe'] >= 1 or state['stone_axe'] >= 1:
+            total_weight += float('inf')
+    elif 'punch' in action:
+        if state['wooden_axe'] >= 1 or state['iron_axe'] >= 1 or state['stone_axe'] >= 1:
+            total_weight += float('inf')
+            
+    #we do not need more coal than we have ore
+    """"if 'for coal' in action:
+        if state['ore'] < state['coal']:
+            total_weight += float('inf')"""
+    #above might not work cause what if the goal is 64 coal?
+    
+    #essentially take no more of these than what we can craft at a given moment.             
+    """max_bench_space = ["cobble", "ingot", "plank"]   
     for resource in max_bench_space:
-        if state[resource] > 9:
-            total_weight += 50
+        if state[resource] > 8:
+            total_weight += 50"""
+    #not sure how helpful this one is
+    
     return total_weight
 
 def search(graph, state, is_goal, limit, heuristic):
@@ -141,7 +170,7 @@ def search(graph, state, is_goal, limit, heuristic):
                 craft_cost = state_cost + current_cost
                 if next_state not in cost_to_travel or craft_cost < cost_to_travel[next_state]:
                     cost_to_travel[next_state] = craft_cost
-                    priority = craft_cost + heuristic(next_state)
+                    priority = craft_cost + heuristic(next_state, recipe_name)
                     heappush(queue, (priority, next_state))
                     predecessor[next_state] = (current_state, recipe_name)                          
     except IndexError:
