@@ -127,9 +127,9 @@ def heuristic(state, action):
             total_weight += float('inf')
             
     #we do not need more coal than we have ore
-    """"if 'for coal' in action:
+    if 'for coal' in action:
         if state['ore'] < state['coal']:
-            total_weight += float('inf')"""
+            total_weight += float('inf')
     #above might not work cause what if the goal is 64 coal?
     
     #essentially take no more of these than what we can craft at a given moment.             
@@ -213,7 +213,7 @@ if __name__ == '__main__':
     state.update(Crafting['Initial'])
 
     # Search for a solution
-    resulting_plan = search(graph, state, is_goal, 100, heuristic)
+    resulting_plan = search(graph, state, is_goal, 30, heuristic)
 
     if resulting_plan:
         # Print resulting plan
