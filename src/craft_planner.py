@@ -6,7 +6,6 @@ from heapq import heappop, heappush
 
 Recipe = namedtuple('Recipe', ['name', 'check', 'effect', 'cost'])
 
-
 class State(OrderedDict):
     """ This class is a thin wrapper around an OrderedDict, which is simply a dictionary which keeps the order in
         which elements are added (for consistent key-value pair comparisons). Here, we have provided functionality
@@ -125,7 +124,7 @@ def heuristic(state, action):
     elif 'punch' in action:
         if state['wooden_axe'] >= 1 or state['iron_axe'] >= 1 or state['stone_axe'] >= 1:
             total_weight += float('inf')
-            
+    #BELOW ARE MORE CASE SPECIFIC HEURISTICS THAT WILL NOT WORK FOR GOALS SUCH AS: GET PLANK: 30        
     #we do not need more coal than we have ore
     if 'for coal' in action:
         if state['ore'] < state['coal']:
@@ -133,10 +132,10 @@ def heuristic(state, action):
     #above might not work cause what if the goal is 64 coal?
     
     #essentially take no more of these than what we can craft at a given moment.             
-    max_bench_space = ["cobble", "ingot", "plank"]   
-    for resource in max_bench_space:
-        if state[resource] > 8:
-            total_weight += 50
+    max_bench_space = {"cobble" : 8, "ingot" : 6, "plank" : 8, "stick" : 4, "wood" : 2, "ore" : 6}   
+    for resource, amount in max_bench_space.items():
+        if state[resource] > amount:
+            total_weight += float('inf')
     #not sure how helpful this one is
     
     return total_weight
@@ -158,12 +157,14 @@ def search(graph, state, is_goal, limit, heuristic):
             current_cost = cost_to_travel[current_state]
             
             if is_goal(current_state):
-                print({time() - start_time}," seconds")
+                print("Path found in : ", time() - start_time," seconds")
                 resulting_path = []
                 state, action = predecessor[current_state]
                 while state:
                     resulting_path.append((state, action))
                     state, action = predecessor[state]
+                print("Total Actions: ", len(resulting_path))
+                print("Total Cost: ", cost_to_travel.get(current_state))
                 return resulting_path[::-1]
             
             for recipe_name, next_state, state_cost in graph(current_state):
@@ -213,11 +214,10 @@ if __name__ == '__main__':
     state.update(Crafting['Initial'])
 
     # Search for a solution
-    resulting_plan = search(graph, state, is_goal, 30, heuristic)
+    resulting_plan = search(graph, state, is_goal, 200, heuristic)
 
     if resulting_plan:
         # Print resulting plan
         for state, action in resulting_plan:
             print('\t',state)
             print(action)
-        print(len(resulting_plan))
