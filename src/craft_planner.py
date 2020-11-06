@@ -102,41 +102,49 @@ def heuristic(state, action):
     # Implement your heuristic here!
     total_weight = 0
     
+    #bELOW ARE DECENT HEURISTICS
     #items where there is no need to have more than 1
     redundant_list = ["bench", "cart", "furnace", "iron_axe", "iron_pickaxe", "stone_axe", "stone_pickaxe", "wooden_axe", "wooden_pickaxe"]
     for redundancy in redundant_list:
         if state[redundancy] > 1 :
-            total_weight += float('inf')
+            return float('inf')
             
     #if we have a tool of a higher tier do not use the lower tier one.
     if 'stone_pickaxe' in action:
         if state['iron_pickaxe'] >= 1:
-            total_weight += float('inf')
+            return float('inf')
     elif 'wooden_pickaxe' in action:
         if state['iron_pickaxe'] >= 1 or state['stone_pickaxe'] >= 1:
-            total_weight += float('inf')
+            return float('inf')
     if 'stone_axe' in action:
         if state['iron_axe'] >= 1:
-            total_weight += float('inf')
+            return float('inf')
     elif 'wooden_axe' in action:
         if state['iron_axe'] >= 1 or state['stone_axe'] >= 1:
-            total_weight += float('inf')
+            return float('inf')
     elif 'punch' in action:
         if state['wooden_axe'] >= 1 or state['iron_axe'] >= 1 or state['stone_axe'] >= 1:
-            total_weight += float('inf')
+            return float('inf')
+            
     #BELOW ARE MORE CASE SPECIFIC HEURISTICS THAT WILL NOT WORK FOR GOALS SUCH AS: GET PLANK: 30        
     #we do not need more coal than we have ore
-    if 'for coal' in action:
-        if state['ore'] < state['coal']:
+    #might not work cause what if the goal is 64 coal? Then the planner will try to seek at least 64 ore as well     
+    if 'for coal' in action or 'for ore' in action:
+        if abs(state['ore'] - state['coal']) > 1:
             total_weight += float('inf')
-    #above might not work cause what if the goal is 64 coal?
+   
+    #THIS BELOW HEURISTIC IS INCREDIBLY CASE SENSITIVE
+    #gather wood as last resort
+    if 'for wood' in action:
+        if state['wood'] > 0:
+            total_weight += 300
     
-    #essentially take no more of these than what we can craft at a given moment.             
-    max_bench_space = {"cobble" : 8, "ingot" : 6, "plank" : 8, "stick" : 4, "wood" : 2, "ore" : 6}   
+    #essentially take no more of these than what we can craft at a given moment.
+    #again this heurstic ignores case specific actions.
+    max_bench_space = {"cobble" : 8, "ingot" : 6, "plank" : 13, "stick" : 5, "wood" : 1, "ore" : 6, "coal" : 6}   
     for resource, amount in max_bench_space.items():
         if state[resource] > amount:
             total_weight += float('inf')
-    #not sure how helpful this one is
     
     return total_weight
 
@@ -145,7 +153,7 @@ def search(graph, state, is_goal, limit, heuristic):
     start_time = time()
     queue = [(0, state)]
     predecessor = { state : (None, None) } 
-    cost_to_travel = { state : 0 }    
+    cost_to_travel = { state : 0 }
 
     # Implement your search here! Use your heuristic here!
     # When you find a path to the goal return a list of tuples [(state, action)]
@@ -205,9 +213,10 @@ if __name__ == '__main__':
         effector = make_effector(rule)
         recipe = Recipe(name, checker, effector, rule['Time'])
         all_recipes.append(recipe)
-
+        
     # Create a function which checks for the goal
     is_goal = make_goal_checker(Crafting['Goal'])
+    
 
     # Initialize first state from initial inventory
     state = State({key: 0 for key in Crafting['Items']})
